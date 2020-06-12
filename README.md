@@ -29,3 +29,29 @@ curl -s https://api-test.geofox.de/gti/public/geofoxThinInterfacePublic.xsd 2>&1
 ```
 
 You can also mix input/output files and stdin/stdout.
+
+## Library usage
+
+You can also use the `xml_to_vol` method to convert your schema:
+
+```python
+from xsd_to_vol import xsd_to_vol
+
+with open("schema.xsd", 'r') as schema_file:
+    xsd = schema_file.read()
+    print(xsd_to_vol(xsd))
+```
+
+## To Do
+
+While the generation should work for most xsd files, there are some features I'd
+like to have in future versions:
+
+- [ ] Only include used imports: Currently all possible voluptuous requirements
+        are imported. The required imports can be determined.
+- [ ] Tests: Gather different xsd schemas and build pytests to test the generation.
+- [ ] Automatic code formatting: Run black over the code (without piping).
+
+## Contributions are welcome!
+
+If you want to contribute to this, please read the [Contribution guidelines](CONTRIBUTING.md)
