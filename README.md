@@ -5,8 +5,13 @@
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 <a href="https://github.com/vigonotion/xsd-to-vol/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/vigonotion/xsd-to-vol"></a>
 <a href="https://github.com/vigonotion/xsd-to-vol/releases"><img alt="Release" src="https://img.shields.io/github/release/vigonotion/xsd-to-vol"></a>
-
+[![PyPI version](https://badge.fury.io/py/xsd-to-vol.svg)](https://badge.fury.io/py/xsd-to-vol)
 Convert XML Schema Definition files to voluptuous schemas.
+
+Get it on PyPi:
+```sh
+pip install xsd-to-vol
+```
 
 ## Binary file usage
 
