@@ -47,7 +47,8 @@ with open('schema.xsd', 'r') as schema_file:
 """
 Header.
 """
-print("from voluptuous import In, Schema, Url\nfrom datetime import datetime\nimport pytz")
+print("\"\"\"\nThis file was generated automatically by xsd-to-vol.py. Do not edit.\n\"\"\"")
+print("from voluptuous import All, In, Length, Required, Schema, Url\nfrom datetime import datetime\nimport pytz")
 print()
 
 print("""
@@ -94,41 +95,86 @@ def complex_schema(name, complex_type, docs):
 
     if "xsd:sequence" in complex_type:
         sequence = complex_type["xsd:sequence"]
+        base = complex_type.get("@base")
     elif "xsd:complexContent" in complex_type and "xsd:sequence" in complex_type["xsd:complexContent"]:
         sequence = complex_type["xsd:complexContent"]["xsd:sequence"]
+        base = complex_type["xsd:complexContent"].get("@base")
     elif "xsd:complexContent" in complex_type \
         and "xsd:extension" in complex_type["xsd:complexContent"] \
         and "xsd:sequence" in complex_type["xsd:complexContent"]["xsd:extension"]:
         sequence = complex_type["xsd:complexContent"]["xsd:extension"]["xsd:sequence"]
-    
+        base = complex_type["xsd:complexContent"]["xsd:extension"].get("@base")
+    else:
+        base = None
+
     if sequence:
         for element in sequence["xsd:element"] if isinstance(sequence["xsd:element"], list) else [sequence["xsd:element"]]:
             e_name = element["@name"]
             doc = element["xsd:annotation"]["xsd:documentation"] if "xsd:annotation" in element else ""
 
-            min_occurs = element.get("@minOccurs", "unbounded")
-            max_occurs = element.get("@maxOccurs", "unbounded")
+            min_occurs = element.get("@minOccurs")
+            max_occurs = element.get("@maxOccurs")
+            default = element.get("@default")
 
             e_type = xsd_type_to_type(element["@type"])
 
-            if "default" in element:
-                doc += f"\nDefault: {element['@default']}"
+            if default:
+                doc += f" Default: {default}"
 
             docs += (f"{e_name}: {e_type} {doc} ({min_occurs} - {max_occurs})\n")
 
-            S.append(f"\"{e_name}\": {e_type}")
+            l_name = f"\"{e_name}\""
+
+            min_len = None
+            max_len = None
+
+            if min_occurs != "unbounded" and min_occurs is not None:
+                min_len = int(min_occurs)
+            if max_occurs != "unbounded" and max_occurs is not None:
+                max_len = int(max_occurs)
+                
+            # if min_occurs == "1" and max_occurs == "1":
+            #     l_name = f"Required(\"{e_name}\")"
+            #     l_type = f"{e_type}"
+            # elif min_occurs == "1" and max_occurs == "unbounded":
+            #     l_name = f"Required(\"{e_name}\")"
+            #     l_type = f"[{e_type}]"
+            if max_occurs == "1" or (min_occurs == "1" and max_occurs is None):
+                l_type = f"{e_type}"
+            elif min_occurs in ("0", None) and max_occurs == "unbounded":
+                l_type = f"[{e_type}]"
+
+            elif min_len is not None and max_len is not None:
+                if (min_len == 0 and max_len == 1):
+                    l_type = e_type
+                else:
+                    l_type = f"All([{e_type}], Length(min={min_len}, max={max_len}))"
+            elif min_len is not None and min_len > 0:
+                l_type = f"All([{e_type}], Length(min={min_len}))"
+            elif max_len is not None:
+                l_type = f"All([{e_type}], Length(max={max_len}))"
+            
+
+            else:
+                l_type = e_type
+
+            # Non-optional types
+            if min_occurs != "0" and min_occurs is not None and not default:
+                l_name = f"Required(\"{e_name}\")"
+
+            S.append(f"{l_name}: {l_type}")
 
             if e_type not in preset_types.values():
                 R.append(e_type)
     
     #print(f"{docs}\"\"\"")
-
-    if "xsd:complexContent" in complex_type:
-        base = xsd_type_to_type(complex_type["xsd:complexContent"]["xsd:extension"]["@base"])
+    if base:
+        t = xsd_type_to_type(base)
         s = "{" + ", ".join(S) + "}"
-        schema = f"Schema.extend({base}, {s})"
-
-    schema = "Schema({" + ", ".join(S) + "})"
+        schema = f"Schema.extend({t}, {s})"
+        R.append(t)
+    else:
+        schema = "Schema({" + ", ".join(S) + "})"
 
     return Schema(name, schema, docs, list(set(R)))
 
@@ -151,7 +197,7 @@ Elements.
 """
 
 for element_type in schema["xsd:schema"]["xsd:element"]:
-    type_name = element_type["@name"]
+    name = element_type["@name"]
     docs = element_type.get("xsd:annotation", {}).get("xsd:documentation", "")
     if docs != "":
         docs += "\n\n"
