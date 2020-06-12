@@ -6,4 +6,4 @@ class SchemaContainer:
         self.requirements = requirements
 
     def __str__(self):
-        return f"\"\"\"{self.name}\n\n{self.documentation}\n\"\"\"\n\n{self.name} = {self.schema}"
+        return f'"""{self.name}\n\n{self.documentation}\n"""\n\n{self.name} = {self.schema}'

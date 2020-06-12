@@ -18,13 +18,13 @@ Pull requests are the best way to propose changes to the codebase.
 3. Make sure your code lints (using black).
 4. Issue that pull request!
 
-## Any contributions you make will be under the Apache License 2.0 
+## Any contributions you make will be under the Apache License 2.0
 
 In short, when you submit code changes, your submissions are understood to be under the same [Apache License 2.0](https://choosealicense.com/licenses/apache-2.0/) that covers the project. Feel free to contact the maintainers if that's a concern.
 
 ## Report bugs using Github's [issues](../../issues)
 
-GitHub issues are used to track public bugs.  
+GitHub issues are used to track public bugs.
 Report a bug by [opening a new issue](../../issues/new/choose); it's that easy!
 
 ## Write bug reports with detail, background, and sample code

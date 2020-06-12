@@ -12,17 +12,15 @@ from shutil import rmtree
 from setuptools import Command, find_packages, setup
 
 # Package meta-data.
-NAME = 'xsd-to-vol'
-DESCRIPTION = 'Convert XML Schema Definitions to Voluptuous schemas.'
-URL = 'https://github.com/vigonotion/xsd-to-vol'
-EMAIL = 'mail@vigonotion.com'
-AUTHOR = 'Tom Schneider'
-REQUIRES_PYTHON = '>=3.6.0'
+NAME = "xsd-to-vol"
+DESCRIPTION = "Convert XML Schema Definitions to Voluptuous schemas."
+URL = "https://github.com/vigonotion/xsd-to-vol"
+EMAIL = "mail@vigonotion.com"
+AUTHOR = "Tom Schneider"
+REQUIRES_PYTHON = ">=3.6.0"
 
 # What packages are required for this module to be executed?
-REQUIRED = [
-    'xmltodict', 'argparse'
-]
+REQUIRED = ["xmltodict", "argparse"]
 
 # What packages are optional?
 EXTRAS = {
@@ -46,6 +44,7 @@ except FileNotFoundError:
 
 # Load the package's __version__.py module as a dictionary.
 about = {}
+
 
 class UploadCommand(Command):
     """Support setup.py upload."""
@@ -97,9 +96,7 @@ setup(
     python_requires=REQUIRES_PYTHON,
     url=URL,
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
-    entry_points = {
-        "console_scripts": ['xsd-to-vol = xsd_to_vol.__main__:main']
-        },
+    entry_points={"console_scripts": ["xsd-to-vol = xsd_to_vol.__main__:main"]},
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,

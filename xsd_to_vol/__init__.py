@@ -1,23 +1,25 @@
-import xmltodict
 import json
+
+import xmltodict
 
 from .schema_container import SchemaContainer as Schema
 
 preset_types = {
-            "string": "str",
-            "int": "int",
-            "long": "int",
-            "float": "float",
-            "double": "float",
-            "boolean": "bool",
-            "dateTime": "DateTime",
-            "date": "DateTime",
-            "anyURI": "Url"
-        }
+    "string": "str",
+    "int": "int",
+    "long": "int",
+    "float": "float",
+    "double": "float",
+    "boolean": "bool",
+    "dateTime": "DateTime",
+    "date": "DateTime",
+    "anyURI": "Url",
+}
+
 
 def xsd_type_to_type(xsd_type):
 
-    namespace, xtype = xsd_type.split(':')
+    namespace, xtype = xsd_type.split(":")
 
     if namespace == "xsd":
         p_type = preset_types.get(xtype)
@@ -29,33 +31,47 @@ def xsd_type_to_type(xsd_type):
 
     return xtype
 
+
 def simple_schema(values):
     return f"In([{', '.join(values)}])"
 
 
 def complex_schema(name, complex_type, docs):
     S = []
-    R = [] # required types
+    R = []  # required types
     sequence = None
 
     if "xsd:sequence" in complex_type:
         sequence = complex_type["xsd:sequence"]
         base = complex_type.get("@base")
-    elif "xsd:complexContent" in complex_type and "xsd:sequence" in complex_type["xsd:complexContent"]:
+    elif (
+        "xsd:complexContent" in complex_type
+        and "xsd:sequence" in complex_type["xsd:complexContent"]
+    ):
         sequence = complex_type["xsd:complexContent"]["xsd:sequence"]
         base = complex_type["xsd:complexContent"].get("@base")
-    elif "xsd:complexContent" in complex_type \
-        and "xsd:extension" in complex_type["xsd:complexContent"] \
-        and "xsd:sequence" in complex_type["xsd:complexContent"]["xsd:extension"]:
+    elif (
+        "xsd:complexContent" in complex_type
+        and "xsd:extension" in complex_type["xsd:complexContent"]
+        and "xsd:sequence" in complex_type["xsd:complexContent"]["xsd:extension"]
+    ):
         sequence = complex_type["xsd:complexContent"]["xsd:extension"]["xsd:sequence"]
         base = complex_type["xsd:complexContent"]["xsd:extension"].get("@base")
     else:
         base = None
 
     if sequence:
-        for element in sequence["xsd:element"] if isinstance(sequence["xsd:element"], list) else [sequence["xsd:element"]]:
+        for element in (
+            sequence["xsd:element"]
+            if isinstance(sequence["xsd:element"], list)
+            else [sequence["xsd:element"]]
+        ):
             e_name = element["@name"]
-            doc = element["xsd:annotation"]["xsd:documentation"] if "xsd:annotation" in element else ""
+            doc = (
+                element["xsd:annotation"]["xsd:documentation"]
+                if "xsd:annotation" in element
+                else ""
+            )
 
             min_occurs = element.get("@minOccurs")
             max_occurs = element.get("@maxOccurs")
@@ -66,9 +82,9 @@ def complex_schema(name, complex_type, docs):
             if default:
                 doc += f" Default: {default}"
 
-            docs += (f"{e_name}: {e_type} {doc} ({min_occurs} - {max_occurs})\n")
+            docs += f"{e_name}: {e_type} {doc} ({min_occurs} - {max_occurs})\n"
 
-            l_name = f"\"{e_name}\""
+            l_name = f'"{e_name}"'
 
             min_len = None
             max_len = None
@@ -77,7 +93,7 @@ def complex_schema(name, complex_type, docs):
                 min_len = int(min_occurs)
             if max_occurs != "unbounded" and max_occurs is not None:
                 max_len = int(max_occurs)
-                
+
             # if min_occurs == "1" and max_occurs == "1":
             #     l_name = f"Required(\"{e_name}\")"
             #     l_type = f"{e_type}"
@@ -90,7 +106,7 @@ def complex_schema(name, complex_type, docs):
                 l_type = f"[{e_type}]"
 
             elif min_len is not None and max_len is not None:
-                if (min_len == 0 and max_len == 1):
+                if min_len == 0 and max_len == 1:
                     l_type = e_type
                 else:
                     l_type = f"All([{e_type}], Length(min={min_len}, max={max_len}))"
@@ -98,21 +114,20 @@ def complex_schema(name, complex_type, docs):
                 l_type = f"All([{e_type}], Length(min={min_len}))"
             elif max_len is not None:
                 l_type = f"All([{e_type}], Length(max={max_len}))"
-            
 
             else:
                 l_type = e_type
 
             # Non-optional types
             if min_occurs != "0" and min_occurs is not None and not default:
-                l_name = f"Required(\"{e_name}\")"
+                l_name = f'Required("{e_name}")'
 
             S.append(f"{l_name}: {l_type}")
 
             if e_type not in preset_types.values():
                 R.append(e_type)
-    
-    #schema_str += f"{docs}\"\"\""
+
+    # schema_str += f"{docs}\"\"\""
     if base:
         t = xsd_type_to_type(base)
         s = "{" + ", ".join(S) + "}"
@@ -122,6 +137,7 @@ def complex_schema(name, complex_type, docs):
         schema = "Schema({" + ", ".join(S) + "})"
 
     return Schema(name, schema, docs, list(set(R)))
+
 
 def xsd_to_vol(xsd):
 
@@ -153,11 +169,11 @@ def DateTime(dt):
 
     Schemas = []
 
-
-
     for simple_type in schema["xsd:schema"]["xsd:simpleType"]:
         name = simple_type["@name"]
-        docs = simple_type["xsd:annotation"]["xsd:documentation"].replace("\t\t\t\t", "")
+        docs = simple_type["xsd:annotation"]["xsd:documentation"].replace(
+            "\t\t\t\t", ""
+        )
 
         enum = simple_type["xsd:restriction"]["xsd:enumeration"]
 
@@ -166,10 +182,7 @@ def DateTime(dt):
         else:
             vals = [f"\"{enum['@value']}\""]
 
-
         Schemas.append(Schema(name, simple_schema(vals), docs, []))
-
-
 
     """
     Complex types.
@@ -181,13 +194,9 @@ def DateTime(dt):
         if docs != "":
             docs += "\n\n"
 
-
         s = complex_schema(name, complex_type, docs)
 
         Schemas.append(s)
-
-
-
 
     """
     Elements.
@@ -203,8 +212,6 @@ def DateTime(dt):
             Schemas.append(complex_schema(name, element_type["xsd:complexType"], docs))
         else:
             raise Exception("No complexType!")
-        
-
 
     """
     Print schemas in correct order (using Kahn's algorithm).
@@ -215,12 +222,11 @@ def DateTime(dt):
 
     while len(S) > 0:
         n = S.pop()
-        
+
         L.append(n)
 
         for m in [x for x in Schemas if n.name in x.requirements]:
             m.requirements.remove(n.name)
-
 
             if len(m.requirements) == 0:
                 S.append(m)
