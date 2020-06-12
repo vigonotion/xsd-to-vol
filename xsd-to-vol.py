@@ -10,7 +10,7 @@ class Schema:
         self.requirements = requirements
 
     def __str__(self):
-        return f"\"\"\"{self.name}\n\n{self.documentation}\n\"\"\"\n\n{self.name} = {self.schema} # requires: {self.requirements}"
+        return f"\"\"\"{self.name}\n\n{self.documentation}\n\"\"\"\n\n{self.name} = {self.schema}"
 
 preset_types = {
             "string": "str",
