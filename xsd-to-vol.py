@@ -105,12 +105,16 @@ def complex_schema(name, complex_type, docs):
         for element in sequence["xsd:element"] if isinstance(sequence["xsd:element"], list) else [sequence["xsd:element"]]:
             e_name = element["@name"]
             doc = element["xsd:annotation"]["xsd:documentation"] if "xsd:annotation" in element else ""
+
+            min_occurs = element.get("@minOccurs", "unbounded")
+            max_occurs = element.get("@maxOccurs", "unbounded")
+
             e_type = xsd_type_to_type(element["@type"])
 
             if "default" in element:
                 doc += f"\nDefault: {element['@default']}"
 
-            docs += (f"{e_name}: {e_type} {doc}\n")
+            docs += (f"{e_name}: {e_type} {doc} ({min_occurs} - {max_occurs})\n")
 
             S.append(f"\"{e_name}\": {e_type}")
 
@@ -171,12 +175,12 @@ while len(S) > 0:
     
     L.append(n)
 
-    for m in [x for x in Schemas if n in x.requirements]:
-        m.requirements.remove(n)
+    for m in [x for x in Schemas if n.name in x.requirements]:
+        m.requirements.remove(n.name)
+
 
         if len(m.requirements) == 0:
             S.append(m)
-
 
 for s in L:
     print(s)
