@@ -1,16 +1,7 @@
 import xmltodict
 import json
-from case_changer import snake_case
 
-class Schema:
-    def __init__(self, name, schema, documentation, requirements):
-        self.name = name
-        self.schema = schema
-        self.documentation = documentation
-        self.requirements = requirements
-
-    def __str__(self):
-        return f"\"\"\"{self.name}\n\n{self.documentation}\n\"\"\"\n\n{self.name} = {self.schema}"
+from .schema_container import SchemaContainer as Schema
 
 preset_types = {
             "string": "str",
@@ -38,55 +29,9 @@ def xsd_type_to_type(xsd_type):
 
     return xtype
 
-with open('schema.xsd', 'r') as schema_file:
-  schema_xml = schema_file.read()
-  schema = xmltodict.parse(schema_xml)
-
-#print(json.dumps(schema, indent=2))
-
-"""
-Header.
-"""
-print("\"\"\"\nThis file was generated automatically by xsd-to-vol.py. Do not edit.\n\"\"\"")
-print("from voluptuous import All, In, Length, Required, Schema, Url\nfrom datetime import datetime\nimport pytz")
-print()
-
-print("""
-def DateTime(dt):
-    dt = pytz.utc.localize(dt)
-    return f"{dt.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}{dt.strftime('%z')}"
-""")
-
-print()
-
-"""
-Simple types are like enums or like voluptuous In().
-"""
-
-Schemas = []
-
 def simple_schema(values):
-    return f"In([{', '.join(vals)}])"
+    return f"In([{', '.join(values)}])"
 
-for simple_type in schema["xsd:schema"]["xsd:simpleType"]:
-    name = simple_type["@name"]
-    docs = simple_type["xsd:annotation"]["xsd:documentation"].replace("\t\t\t\t", "")
-
-    enum = simple_type["xsd:restriction"]["xsd:enumeration"]
-
-    if isinstance(enum, list):
-        vals = [f"\"{x['@value']}\"" for x in enum]
-    else:
-        vals = [f"\"{enum['@value']}\""]
-
-
-    Schemas.append(Schema(name, simple_schema(vals), docs, []))
-
-
-
-"""
-Complex types.
-"""
 
 def complex_schema(name, complex_type, docs):
     S = []
@@ -167,7 +112,7 @@ def complex_schema(name, complex_type, docs):
             if e_type not in preset_types.values():
                 R.append(e_type)
     
-    #print(f"{docs}\"\"\"")
+    #schema_str += f"{docs}\"\"\""
     if base:
         t = xsd_type_to_type(base)
         s = "{" + ", ".join(S) + "}"
@@ -178,56 +123,110 @@ def complex_schema(name, complex_type, docs):
 
     return Schema(name, schema, docs, list(set(R)))
 
-for complex_type in schema["xsd:schema"]["xsd:complexType"]:
-    name = complex_type["@name"]
-    docs = complex_type.get("xsd:annotation", {}).get("xsd:documentation", "")
-    if docs != "":
-        docs += "\n\n"
+def xsd_to_vol(xsd):
+
+    schema = xmltodict.parse(xsd)
+
+    """
+    Header.
+    """
+
+    schema_str = """
+\"\"\"
+This file was generated automatically by xsd-to-vol. Do not edit.
+\"\"\"
+
+from datetime import datetime
+import pytz
+from voluptuous import All, In, Length, Required, Schema, Url
+
+def DateTime(dt):
+    dt = pytz.utc.localize(dt)
+    return f"{dt.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}{dt.strftime('%z')}"
+    """
+
+    schema_str += "\n"
+
+    """
+    Simple types are like enums or like voluptuous In().
+    """
+
+    Schemas = []
 
 
-    s = complex_schema(name, complex_type, docs)
 
-    Schemas.append(s)
+    for simple_type in schema["xsd:schema"]["xsd:simpleType"]:
+        name = simple_type["@name"]
+        docs = simple_type["xsd:annotation"]["xsd:documentation"].replace("\t\t\t\t", "")
 
+        enum = simple_type["xsd:restriction"]["xsd:enumeration"]
 
-
-
-"""
-Elements.
-"""
-
-for element_type in schema["xsd:schema"]["xsd:element"]:
-    name = element_type["@name"]
-    docs = element_type.get("xsd:annotation", {}).get("xsd:documentation", "")
-    if docs != "":
-        docs += "\n\n"
-
-    if "xsd:complexType" in element_type:
-        Schemas.append(complex_schema(name, element_type["xsd:complexType"], docs))
-    else:
-        raise Exception("No complexType!")
-    
+        if isinstance(enum, list):
+            vals = [f"\"{x['@value']}\"" for x in enum]
+        else:
+            vals = [f"\"{enum['@value']}\""]
 
 
-"""
-Print schemas in correct order (using Kahn's algorithm).
-"""
-
-L = []
-S = [x for x in Schemas if len(x.requirements) == 0]
-
-while len(S) > 0:
-    n = S.pop()
-    
-    L.append(n)
-
-    for m in [x for x in Schemas if n.name in x.requirements]:
-        m.requirements.remove(n.name)
+        Schemas.append(Schema(name, simple_schema(vals), docs, []))
 
 
-        if len(m.requirements) == 0:
-            S.append(m)
 
-for s in L:
-    print(s)
-    print("\n\n")
+    """
+    Complex types.
+    """
+
+    for complex_type in schema["xsd:schema"]["xsd:complexType"]:
+        name = complex_type["@name"]
+        docs = complex_type.get("xsd:annotation", {}).get("xsd:documentation", "")
+        if docs != "":
+            docs += "\n\n"
+
+
+        s = complex_schema(name, complex_type, docs)
+
+        Schemas.append(s)
+
+
+
+
+    """
+    Elements.
+    """
+
+    for element_type in schema["xsd:schema"]["xsd:element"]:
+        name = element_type["@name"]
+        docs = element_type.get("xsd:annotation", {}).get("xsd:documentation", "")
+        if docs != "":
+            docs += "\n\n"
+
+        if "xsd:complexType" in element_type:
+            Schemas.append(complex_schema(name, element_type["xsd:complexType"], docs))
+        else:
+            raise Exception("No complexType!")
+        
+
+
+    """
+    Print schemas in correct order (using Kahn's algorithm).
+    """
+
+    L = []
+    S = [x for x in Schemas if len(x.requirements) == 0]
+
+    while len(S) > 0:
+        n = S.pop()
+        
+        L.append(n)
+
+        for m in [x for x in Schemas if n.name in x.requirements]:
+            m.requirements.remove(n.name)
+
+
+            if len(m.requirements) == 0:
+                S.append(m)
+
+    for s in L:
+        schema_str += str(s)
+        schema_str += "\n\n"
+
+    return schema_str

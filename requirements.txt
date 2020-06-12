@@ -1,0 +1,3 @@
+pytz==2020.1
+voluptuous==0.11.7
+xmltodict==0.12.0
