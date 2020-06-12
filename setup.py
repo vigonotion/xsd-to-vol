@@ -18,6 +18,7 @@ URL = "https://github.com/vigonotion/xsd-to-vol"
 EMAIL = "mail@vigonotion.com"
 AUTHOR = "Tom Schneider"
 REQUIRES_PYTHON = ">=3.6.0"
+VERSION = "0.0.0"
 
 # What packages are required for this module to be executed?
 REQUIRED = ["xmltodict", "argparse"]
@@ -44,7 +45,12 @@ except FileNotFoundError:
 
 # Load the package's __version__.py module as a dictionary.
 about = {}
-
+if not VERSION:
+    project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
+    with open(os.path.join(here, project_slug, "__version__.py")) as f:
+        exec(f.read(), about)
+else:
+    about["__version__"] = VERSION
 
 class UploadCommand(Command):
     """Support setup.py upload."""
